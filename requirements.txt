@@ -1,0 +1,11 @@
+numpy
+scipy
+pandas
+hyperspy
+skimage
+matplotlib
+cv2
+particlespy
+segment_anything
+torch
+h5py
