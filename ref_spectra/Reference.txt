@@ -1,0 +1,3 @@
+Ce3+ and Ce4+ normalised reference spectra derived from:
+
+Garvie, L. A. J., & Buseck, P. R. (1999). Determination of Ce4+/Ce3+ in electron-beam-damaged CeO2 by electron energy-loss spectroscopy. Journal of Physics and Chemistry of Solids, 60(12), 1943–1947. https://doi.org/10.1016/S0022-3697(99)00218-8
