@@ -417,6 +417,27 @@ def mlls_fit(spec_norm, r3, r4):
     ratio = c3 / c4 if c4 > 0 else np.nan
     return c3, c4, frac, ratio
 
+# calculation helper
+def calculate_dose(current_pA, frame, time_s, scan_pixels, pixel_area_nm2):
+    """
+    Calculate cumulative electron dose (electrons per nm^2).
+
+    Parameters:
+        current_pA (float): beam current in picoamperes.
+        frame (int): number of frames.
+        time_s (float): total acquisition time per frame (s).
+        scan_pixels (int): number of pixels in the scan.
+        pixel_area_nm2 (float): pixel area in nm^2.
+
+    Returns:
+        float: total electron dose in electrons per nm^2.
+    """
+    electrons_per_second = (current_pA * 1e-12) / 1.602e-19
+    dwell_time_per_pixel = time_s / scan_pixels
+    electrons_per_pixel = electrons_per_second * dwell_time_per_pixel
+    dose_per_frame = electrons_per_pixel / pixel_area_nm2
+    return dose_per_frame * frame
+
 # Matplotlib related functions
 def save_figure(fig, outpath, dpi=200, tight=True, pad_inches=0.02):
     """
@@ -534,3 +555,4 @@ def add_scalebar(ax, pixel_size_nm=0.15, scale_length_nm=5, location='lower left
         ])
     except Exception:
         pass
+
