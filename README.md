@@ -4,7 +4,7 @@
 A code repository to accompany the paper "Direct Detection EELS Enables Native-State Mapping of Ceria"
 
 ## Folder descriptions
-Processing folder contains functions needed to run the interactive notebook.
+Processing folder contains functions needed to run the interactive notebook, alongside batch scripts.
 
 Reference spectra used for fitting, available in named folder, derived from [Garvie and Buseck, 1999](https://doi.org/10.1016/S0022-3697(99)00218-8).
 
