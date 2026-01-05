@@ -8,4 +8,4 @@ Processing folder contains functions needed to run the interactive notebook.
 
 Reference spectra used for fitting, available in named folder, derived from [Garvie and Buseck, 1999](https://doi.org/10.1016/S0022-3697(99)00218-8).
 
-Example data contains datasets to run through the notebook with.
+Example data contains datasets to run through the notebook with, but please note the entire dataset shown in the paper's figures and supplementary data is available at [zenodo](https://zenodo.org/uploads/18132048).
