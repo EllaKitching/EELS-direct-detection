@@ -1,1 +1,0 @@
-Example data to demonstrate use of scripts. 
