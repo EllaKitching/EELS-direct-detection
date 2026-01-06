@@ -1,1 +1,0 @@
-This folder contains necessary functions and batch processing to run prior to the interactive jupyter notebook analysis.
