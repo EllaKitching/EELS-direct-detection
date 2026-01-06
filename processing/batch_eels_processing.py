@@ -270,7 +270,7 @@ def save_figure(fig, outpath, dpi=200, tight=True, pad_inches=0.02):
 def add_scalebar(ax, pixel_size_nm=0.15, scale_length_nm=5, location='lower left', 
                  color='white', fontsize=12, linewidth=3, outlinewidth=3):
     """
-    Add a scale bar to an image axis in a consistent manner.
+    Add a scale bar to an image axis consistently.
     Drawn as a filled rectangle with a black edge so all four sides are outlined.
 
     Parameters:
@@ -316,7 +316,7 @@ def add_scalebar(ax, pixel_size_nm=0.15, scale_length_nm=5, location='lower left
     dpi = ax.figure.dpi
     bar_thickness_px = max(1.0, (linewidth) * (dpi / 72.0))  # 1 pt = 1/72 inch
 
-    # Draw rectangle (scale bar) with black outline on all sides
+    # Draw scale bar with black outline on all sides
     rect = Rectangle(
         (x_offset, y_center - bar_thickness_px / 2.0),
         width=scale_pixels,
@@ -339,7 +339,6 @@ def add_scalebar(ax, pixel_size_nm=0.15, scale_length_nm=5, location='lower left
         path_effects.Normal()
     ])
 
-# Helper: imshow for masked arrays with black background for masked values
 def imshow_with_black(ax, data, cmap='viridis', vmin=None, vmax=None, **kwargs):
     """
     Display data (can be a masked array) with masked values rendered as black.
@@ -408,7 +407,6 @@ def validate_peak_width(signal_1d, peak_idx, energy_axis, min_width_ev=2.0):
         width_ev = float(max(0.0, right_e - left_e))
         return (width_ev >= float(min_width_ev), width_ev)
     except Exception:
-        # Conservative fallback: reject if anything fails
         return False, 0.0, print("Warning: Peak width validation failed.")
 
 
@@ -675,22 +673,17 @@ class DatasetLoader:
                 
             folder = os.path.dirname(summed_path)
             base_name = os.path.splitext(os.path.basename(summed_path))[0]
-            
-            # Extract the base identifier (e.g., "18pA_InSitu_(3)" from "18pA_InSitu_(3)_HL_stack_sumall_20")
-            # Strip common suffixes but preserve the core identifier
+            # Extract the base identifier (e.g., "18pA_InSitu_(3)" from "18pA_InSitu_(3)_HL_stack_sumall")
             base = base_name
-            
-            # Remove HL/LL signal type and summing variant suffixes using regex-like pattern matching
-            # This handles: _HL_stack_sum5, _HL_stack_sum10, _HL_stack_sum20, _HL_stack_sumall_19, _HL_stack_sumall_20, etc.
             import re
             
-            # Try to match and remove patterns like _HL_stack_sum*, _LL_stack_sum*, etc.
+            # match and remove patterns like _HL_stack_sum*, _LL_stack_sum*, etc.
             pattern = r'_(HL|LL|ADF|EDS)_stack(_sum(all_)?\d+|_summed)?$'
             match = re.search(pattern, base, re.IGNORECASE)
             if match:
                 base = base[:match.start()]
             else:
-                # Fallback: try generic removal if regex didn't match
+                # Try generic removal if regex didn't match
                 for suffix in ['_summed', '_stack', '_hl', '_ll', '_eds', '_adf']:
                     if base.lower().endswith(suffix):
                         base = base[:base.lower().rfind(suffix)]
@@ -713,11 +706,9 @@ class DatasetLoader:
                 full_path = os.path.join(folder, f)
                 
                 try:
-                    # Match HL files: accept ONLY _sumall, _sum5, _sum10, _sum20 variants (NOT plain _stack)
                     if '_hl' in f_lower and ('_sumall' in f_lower or '_sum5' in f_lower or '_sum10' in f_lower or '_sum20' in f_lower):
                         files['HL_summed']['path'] = full_path
                         files['HL_summed']['found'] = True
-                    # Match LL files: accept ONLY _sumall, _sum5, _sum10, _sum20 variants (NOT plain _stack)
                     elif '_ll' in f_lower and ('_sumall' in f_lower or '_sum5' in f_lower or '_sum10' in f_lower or '_sum20' in f_lower):
                         files['LL_summed']['path'] = full_path
                         files['LL_summed']['found'] = True
@@ -730,7 +721,6 @@ class DatasetLoader:
                 except Exception as e:
                     self.errors.append(f"Error processing file {f}: {str(e)}")
             
-            # Report status
             for signal_type, info in files.items():
                 if info['found']:
                     print(f"  Found: {signal_type}")
@@ -783,8 +773,6 @@ class DatasetLoader:
             if error_msg:
                 self.errors.append(" | ".join(error_msg))
             return False
-            
-        # restore original base_name (not applicable here)
         return True
     
     def load_dataset(self, summed_path):
@@ -830,7 +818,6 @@ class DatasetLoader:
                 self.errors.append("Missing required HL_summed signal")
                 return False
             
-            # Verify signal types
             hl_signal = self.signals['HL_summed']
             if not hasattr(hl_signal, 'metadata') or not hasattr(hl_signal.metadata, 'Signal'):
                 self.errors.append("HL_summed missing metadata")
@@ -903,14 +890,12 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
         postrl_npz = os.path.join(out_dir, f"{base_name}_postRL.npz")
         ce3_nnls = os.path.join(out_dir, f"{base_name}_bin2_ce3_map_nnls.npy")
         ce3_mlls = os.path.join(out_dir, f"{base_name}_bin2_ce3_map_mlls.npy")
-        
-        # If all key outputs exist, skip processing
         if os.path.exists(postrl_npz) and os.path.exists(ce3_nnls) and os.path.exists(ce3_mlls):
             print(f"\nSkipping {base_name} - already processed (output files exist)")
             return True
         
-        # Discover companion files but DO NOT load everything into memory.
-        # Loading is performed lazily to reduce peak memory usage.
+        # Discover files but DO NOT load everything into memory.
+        # lazily to reduce peak memory usage
         loader = DatasetLoader(summed_path)
         files = loader.find_companion_files(summed_path)
         if not files or not files.get('HL_summed'):
@@ -918,8 +903,7 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
             return False
 
         def _extract_path_multi(dct, keys):
-            """Return the first non-empty path for any of the keys in 'keys'.
-            'dct' entries may be simple strings or dicts containing 'path'."""
+            """Return the first non-empty path for any of the keys."""
             for k in keys:
                 entry = dct.get(k)
                 if entry is None:
@@ -932,15 +916,10 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
                     return p
             return None
 
-        # accept both older 'HL_summed' keys and newer 'HL' keys
         hl_path = _extract_path_multi(files, ['HL', 'HL_summed'])
         ll_path = _extract_path_multi(files, ['LL', 'LL_summed'])
         adf_path = _extract_path_multi(files, ['ADF'])
         eds_path = _extract_path_multi(files, ['EDS'])
-
-        # Load HL stack first (needed to build summed). Do not
-        # load LL/ADF/EDS until after the summed and free
-        # the HL stack to reduce memory.
         try:
             s_HL = hs.load(hl_path)
         except Exception as e:
@@ -959,7 +938,6 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
             try:
                 adf_sig_tmp = hs.load(adf_path)
                 if len(adf_sig_tmp.data.shape) == 3:
-                    # sum frames if ADF is a stack
                     if adf_sig_tmp.data.shape[0] < adf_sig_tmp.data.shape[1] and adf_sig_tmp.data.shape[0] < adf_sig_tmp.data.shape[2]:
                         adf_data_summed = np.sum(adf_sig_tmp.data, axis=0)
                         adf_unbinned_data = adf_data_summed.copy()
@@ -976,7 +954,6 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
         spatial_shapes = []
         if len(s_HL.data.shape) >= 2:
             spatial_shapes.append(s_HL.data.shape[:2])
-        # LL/EDS will be loaded later
         if ll_path is not None:
             try:
                 sig_ll = hs.load(ll_path)
@@ -1064,16 +1041,15 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
                             except Exception:
                                 pass
 
-                    # Apply user-provided LL offset correction if given
+                    # Apply LL offset correction if given
                     if params.get('ll_offset_correction') is not None:
                         ll_offset_correct = params.get('ll_offset_correction', -36.0)
                         s_LL.axes_manager[-1].offset = ll_offset_correct
 
-                    # Perform alignment (per-frame alignment skipped because we've already summed)
+                    # Perform ZLP alignment
                     try:
                         s_LL.align_zero_loss_peak(subpixel=True, also_align=[s_HL], crop=False)
                     except Exception:
-                        # Fall back to no alignment per-variant
                         print('Zero-loss alignment per-variant skipped or failed')
 
                 except Exception as e:
@@ -1094,7 +1070,6 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
 
             processing_versions = []
 
-            # Determine data structure
             has_energy_axis = any('energy' in str(axis.name).lower() or 'eV' in str(axis.units) 
                                 for axis in s_HL.axes_manager._axes)
             
@@ -1105,7 +1080,6 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
                     raise ValueError(f"Dataset missing energy dimension")
                 
             elif len(s_HL.data.shape) == 4:
-                # Average frames
                 frame_axis = None
                 for i, axis in enumerate(s_HL.axes_manager._axes):
                     if 'frame' in str(axis.name).lower() or axis.size < 50:
@@ -1136,7 +1110,7 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
             # Save pre-RL version for comparison
             s_bg_noRL = s_bg.deepcopy()
             
-            # Richardson-Lucy deconvolution (optional): use LL as PSF when available
+            # Richardson-Lucy deconvolution (optional)
             try:
                 if params.get('skip_rl'):
                     print("Skipping RL deconvolution (skip_rl flag)")
@@ -1154,10 +1128,10 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
                     print("  Clipped negative RL artifacts")
                 else:
                     print("LL (PSF) not available: skipping RL deconvolution")
-                    s_bg_noRL = None  # Don't duplicate if no RL was applied
+                    s_bg_noRL = None  
             except Exception as e:
                 print(f"Warning: RL deconvolution failed or not available: {e}")
-                s_bg_noRL = None  # Don't duplicate if RL failed            # Save the post-RL data for manual inspection/cleaning (requested)
+                s_bg_noRL = None  
             try:
                 postrl_npz = os.path.join(out_dir, f"{base_name}_postRL.npz")
                 try:
@@ -1171,21 +1145,19 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
             except Exception as e:
                 print(f"Warning: could not save post-RL data: {e}")
 
-            # Auto-calculate energy shift using CLEANED data (after BG removal & RL deconvolution)
+            # Auto-calculate energy shift from reference using CLEANED data (after BG removal & RL deconvolution)
             energy_shift = params.get('energy_shift_correction', 0.0)
             if abs(energy_shift) < 0.01:
                 print("\nFinding experimental M5 peak position to align references...")
                 print("  (Using background-removed & deconvolved spectrum for better peak detection)")
 
                 try:
-                    # Build a summed experimental spectrum from cleaned data
                     summed_signal = s_bg.sum(axis=(0, 1))
                     summed_spectrum = summed_signal.data
                     
                     print(f"  Summed spectrum shape: {summed_spectrum.shape}")
                     print(f"  Summed spectrum range: {np.min(summed_spectrum):.1f} to {np.max(summed_spectrum):.1f}")
 
-                    # Clean and normalize
                     summed_spectrum_clean = remove_spectral_spikes(summed_spectrum, threshold_sigma=4.0, window=5)
                     summed_spectrum_norm = normalise_spectra(summed_spectrum_clean)
 
@@ -1201,7 +1173,7 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
                         
                         print(f"  M5 region intensity range: {np.min(m5_region_data):.3f} to {np.max(m5_region_data):.3f}")
 
-                        # Find peaks with relaxed thresholds to catch shoulder-like peaks
+                        # Find peaks : ADJUST THRESHOLDS HERE IF NEEDED!! SET BASED ON YOUR DATA PARAMETERS.
                         peaks_m5, props_m5 = find_peaks(
                             m5_region_data,
                             height=0.08,
@@ -1212,11 +1184,9 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
                         print(f"  Found {len(peaks_m5)} candidate peaks in M5 region")
 
                         if len(peaks_m5) > 0:
-                            # Take the tallest peak as M5
+                            # tallest peak as M5
                             tallest_idx = np.argmax(props_m5['peak_heights'])
                             exp_m5_idx = peaks_m5[tallest_idx]
-
-                            # Validate width
                             is_valid, width_ev = validate_peak_width(
                                 m5_region_data, exp_m5_idx, m5_region_energy, min_width_ev=0.5
                             )
@@ -1240,21 +1210,19 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
                                     if len(ref_peaks_m5) > 0:
                                         ref_m5_idx = ref_peaks_m5[np.argmax(ref_props_m5['peak_heights'])]
                                         ref_m5_pos = float(ref_m5_region_energy[ref_m5_idx])
-
-                                        # Calculate shift needed: how much to move references to match experiment
                                         energy_shift = exp_m5_pos - ref_m5_pos
 
                                         print(f"  Experimental M5 peak found at: {exp_m5_pos:.2f} eV (width: {width_ev:.1f} eV)")
                                         print(f"  Ce4+ reference M5 peak at: {ref_m5_pos:.2f} eV")
                                         print(f"  Calculated shift to align references: {energy_shift:+.2f} eV")
 
-                                        # Clamp to reasonable range
+                                        # Set to reasonable range - no false detects causing large movement
                                         max_shift = params.get('max_auto_shift_ev', 6.0)
                                         if abs(energy_shift) > max_shift:
                                             print(f"  WARNING: Shift {energy_shift:+.2f} eV exceeds maximum {max_shift:.1f} eV, clamping...")
                                             energy_shift = np.clip(energy_shift, -max_shift, max_shift)
 
-                                        # Ignore tiny shifts
+                                        # Ignore tiny shifts/peak finding fails
                                         if abs(energy_shift) < 0.3:
                                             print(f"  Shift too small ({energy_shift:+.2f} eV < 0.3 eV), skipping")
                                             energy_shift = 0.0
@@ -1289,7 +1257,7 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
             else:
                 print(f"\nNo energy shift applied (calculated shift: {energy_shift:+.2f} eV)")
 
-            # Free LL from memory if it was loaded for RL 
+            # Free LL from memory
             try:
                 if s_LL is not None and ll_path is not None:
                     del s_LL
@@ -1369,8 +1337,7 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
             try:
                 energy_new = new_energy_axis
                 summed_pix = np.sum(data_resampled, axis=0)
-                # Use a conservative prominence and pad, returns indices of narrow spikes
-                _, clean_sum, peaks = clean_and_normalise_spectrum(energy_new, summed_pix, prominence=0.05, width=(1,5), pad=1) # putting pad=1 to just normalise
+                _, clean_sum, peaks = clean_and_normalise_spectrum(energy_new, summed_pix, prominence=0.05, width=(1,5), pad=1) # putting pad=1 to just normalise, CHANGE THIS AS YOU NEED TO BEST REMOVE ARTEFACTS
                 bad = np.zeros_like(summed_pix, dtype=bool)
                 all_peaks = np.concatenate([peaks.get('pos', np.array([], dtype=int)), peaks.get('neg', np.array([], dtype=int))])
                 for p in all_peaks:
@@ -1380,7 +1347,7 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
 
                 if np.any(bad) and np.sum(~bad) >= 2:
                     good = ~bad
-                    # Interpolate across bad energy channels for every pixel to remove sharp spikes
+                    # Interpolate across energy channels for removed sharp spikes
                     for r in range(data_resampled.shape[0]):
                         spec = data_resampled[r, :]
                         try:
@@ -1391,10 +1358,7 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
                 pass
 
             data_resampled = data_resampled.reshape((h0, w0, target_ns))
-
-            # Create Hyperspy Signal1D with new spectral axis
             s = hs.signals.Signal1D(data_resampled, metadata=s_bg.metadata.as_dictionary(), signal_type='EELS')
-            # update axis metadata
             try:
                 s.axes_manager[2].scale = float(new_energy_axis[1] - new_energy_axis[0])
                 s.axes_manager[2].offset = float(new_energy_axis[0])
@@ -1402,7 +1366,6 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
             except Exception:
                 pass
             
-            # show final cropped range
             print(f"\nFinal processed signal:")
             print(f"  Shape: {s.data.shape}")
             print(f"  Energy range: {s.axes_manager[2].axis.min():.1f} - {s.axes_manager[2].axis.max():.1f} eV")
@@ -1411,14 +1374,13 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
             print(f"  Scale: {s.axes_manager[2].scale:.3f} eV/ch")
             print(f"  Matches reference: {len(s.axes_manager[2].axis) == target_spectral_size and abs(s.axes_manager[2].offset - ref_offset) < 0.01}")
             
-            # Plot summed EELS spectrum from entire image
             try:
                 print("\nCreating summed EELS spectrum plot")
                 summed_spectrum = np.sum(s.data, axis=(0, 1))
                 
                 # Apply improved smoothing routine
                 summed_spectrum_clean = remove_spectral_spikes(summed_spectrum, threshold_sigma=2.0, window=9)
-                summed_spectrum_clean2 = np.clip(summed_spectrum_clean, 0.0, None)  # Remove RL artifacts
+                summed_spectrum_clean2 = np.clip(summed_spectrum_clean, 0.0, None) 
                 summed_spectrum_smoothed = uniform_filter1d(summed_spectrum_clean2, size=3)
                 summed_spectrum_smoothed = gaussian_filter1d(summed_spectrum_smoothed, sigma=1.0)
                 
@@ -1426,7 +1388,7 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
                 
                 energy_axis_interp = s.axes_manager[2].axis
                 
-                # Find M5/M4 peaks with width validation (more lenient for display)
+                # Find M5/M4 peaks with width validation
                 m5_region = (energy_axis_interp >= 878) & (energy_axis_interp <= 888)
                 if np.any(m5_region):
                     m5_peaks, _ = find_peaks(
@@ -1436,7 +1398,6 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
                     )
                     
                     if len(m5_peaks) > 0:
-                        # Validate each peak
                         valid_m5 = []
                         for idx in m5_peaks:
                             is_valid, width_ev = validate_peak_width(
@@ -1458,7 +1419,6 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
                     else:
                         print(f"  Warning: No M5 peak detected in expected region")
                 
-                # Same for M4
                 m4_region = (energy_axis_interp >= 896) & (energy_axis_interp <= 906)
                 if np.any(m4_region):
                     m4_peaks, _ = find_peaks(
@@ -1508,10 +1468,10 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
                 
                 plt.tight_layout()
                 fig_path = os.path.join(figures_dir, f"{base_name}_summed_interpolated_spectrum.png")
-                # [SAVE-FIG] Summed EELS spectrum
+                # Summed EELS spectrum
                 save_figure(fig, fig_path)
                 saved_figures.append(fig_path)
-                # [SAVE-DATA] Summed EELS spectrum arrays
+                # Summed EELS spectrum arrays
                 np.savez(os.path.join(out_dir, f"{base_name}_summed_interpolated_spectrum_data.npz"),
                          energy_axis=energy_axis_interp,
                          spectrum_normalized=summed_spectrum_norm,
@@ -1525,9 +1485,8 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
             if len(s.data.shape) != 3:
                 raise ValueError(f"Sliced data should be 3D (y, x, energy), got shape: {s.data.shape}")
             
-            # Version 1: Original dimensions - crop to even dimensions for bin2 compatibility
+            # crop to even dimensions for bin2 compatibility
             current_shape = s.data.shape
-            # Ensure BOTH dimensions are even for clean 2x2 binning
             even_y = current_shape[0] - (current_shape[0] % 2)
             even_x = current_shape[1] - (current_shape[1] % 2)
             
@@ -1552,7 +1511,7 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
             # Verify bin2 shape matches expectation
             assert data_bin2.shape == (bin2_y, bin2_x, s_orig.data.shape[2]), f"Bin2 shape mismatch: {data_bin2.shape} vs expected ({bin2_y}, {bin2_x}, {s_orig.data.shape[2]})"
             
-            # Create new Hyperspy signal
+            # set up new Hyperspy signal
             s_bin2 = hs.signals.Signal1D(data_bin2, metadata=s_orig.metadata.as_dictionary(), signal_type='EELS')
             s_bin2.axes_manager[2].scale = s_orig.axes_manager[2].scale
             s_bin2.axes_manager[2].offset = s_orig.axes_manager[2].offset
@@ -1676,24 +1635,22 @@ def process_dataset_v3(summed_path, out_dir, refs, params, nproc=None):
             # for bin2 only save NNLS and MLLS arrays
             try:
                 if version['name'] == 'bin2':
-                    # RL version: save Ce3 maps only (original behavior)
+                    # RL version: save Ce3 maps only 
                     np.save(os.path.join(out_dir, f"{base_name}{version_suffix}_ce3_map_nnls.npy"), ce3_map)
                     np.save(os.path.join(out_dir, f"{base_name}{version_suffix}_ce3_map_mlls.npy"), ce3_mlls)
                     print(f"  Saved RL Ce3 maps")
                 elif version['name'] == 'bin2_noRL':
-                    # NoRL version: save both Ce3 and Ce4 maps for comparison
+                    # NoRL version: save both Ce3 and Ce4 maps for comparison, good for debugging
                     np.save(os.path.join(out_dir, f"{base_name}{version_suffix}_ce3_map_nnls.npy"), ce3_map)
                     np.save(os.path.join(out_dir, f"{base_name}{version_suffix}_ce3_map_mlls.npy"), ce3_mlls)
                     np.save(os.path.join(out_dir, f"{base_name}{version_suffix}_ce4_map_nnls.npy"), ce4_map)
                     np.save(os.path.join(out_dir, f"{base_name}{version_suffix}_ce4_map_mlls.npy"), ce4_mlls)
                     print(f"  Saved noRL Ce3 and Ce4 maps")
                 else:
-                    # For non-bin2 versions only keep in-memory results (no file writes - can change this here if saved needed)
+                    # For non-bin2 versions only keep in-memory results (no file writes - can change this here if saved needed!)
                     pass
             except Exception as e:
                 print(f"  Warning: Could not save maps: {e}")
-
-            # Skip producing classification maps/overlays in minimal-output mode
             continue
 
         return True
@@ -1719,7 +1676,6 @@ def find_hspy_pairs(input_dir):
     results = []
     seen_bases = set()
     
-    # First pass: collect all base names from summed variants (sum5, sum10, sumall_XX, etc.)
     # Match files with _HL_ and summing suffixes
     for root, dirs, files in os.walk(input_dir):
         # Exclude output/processed directories from search
@@ -1732,20 +1688,18 @@ def find_hspy_pairs(input_dir):
                      and '_processed' not in f.lower()]
 
         for f in hspy_files:
-            # Keep the FULL filename (including sum5/sum10/sumall_XX) as the base
-            # This ensures each variant is processed separately
+            # Keep the FULL filename as the base
+            # ensures each variant is processed separately
             base = os.path.splitext(f)[0]
             seen_bases.add((root, f))
     
     print(f"Found {len(seen_bases)} potential datasets")
     
-    # Second pass: find related files for each summing variant
+    # find related files for each summing variant
     for root, hl_filename in seen_bases:
         hl_full_path = os.path.join(root, hl_filename)
         
-        # Extract base identifier
         import re
-        # Match pattern: _(HL|LL)_stack_(sumall_19|sumall_20|etc., handles diff numbers of frames)
         hl_lower = hl_filename.lower()
         base = hl_lower.replace('.hspy', '')
         sum_variant = None
@@ -1785,13 +1739,11 @@ def find_hspy_pairs(input_dir):
             if '_ll' in f_lower and sum_variant:
                 if sum_variant in f_lower:
                     dataset_files['LL_summed'] = full_path
-            # ADF (usually summed, not variant-specific)
             elif ('_adf' in f_lower) or ('haadf' in f_lower) or ('hadf' in f_lower):
-                if 'ADF' not in dataset_files:  # Take first match
+                if 'ADF' not in dataset_files:  
                     dataset_files['ADF'] = full_path
-            # EDS (usually summed, not variant-specific)
             elif '_eds' in f_lower:
-                if 'EDS' not in dataset_files:  # Take first match
+                if 'EDS' not in dataset_files: 
                     dataset_files['EDS'] = full_path
         
         # Add this dataset
