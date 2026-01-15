@@ -4,3 +4,5 @@ pandas
 hyperspy
 skimage
 matplotlib
+h5py
+tqdm
