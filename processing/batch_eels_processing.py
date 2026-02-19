@@ -305,7 +305,7 @@ def add_scalebar(ax, pixel_size_nm=0.15, scale_length_nm=5, location='lower left
     if 'left' in location.lower():
         x_offset = img_width * 0.03
     else:
-        x_offset = img_width * 0.80
+        x_offset = img_width * 0.97 - scale_pixels
 
     if 'lower' in location.lower():
         y_center = img_height * 0.95
