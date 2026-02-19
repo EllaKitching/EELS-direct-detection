@@ -472,30 +472,29 @@ def save_figure(fig, outpath, dpi=200, tight=True, pad_inches=0.02):
 def add_scalebar(ax, pixel_size_nm=0.15, scale_length_nm=5, location='lower left', 
                  color='white', fontsize=12, linewidth=3, outlinewidth=3):
     """
-    Add a scale bar to an image axis in a consistent manner.
+    Add a scale bar to an image axis consistently.
     Drawn as a filled rectangle with a black edge so all four sides are outlined.
 
     Parameters:
         ax : matplotlib.axes.Axes
-            Axis to draw the scale bar on.
+            Axis to draw the scale bar on
         pixel_size_nm : float, optional
-            Size of one pixel in nanometres (default: 0.15).
+            Size of one pixel in nanometres (default: 0.15)
         scale_length_nm : float, optional
-            Desired length of the scale bar in nanometres (default: 5).
+            Desired length of the scale bar in nanometres (default: 5)
         location : str, optional
-            Location of the scale bar, e.g. 'lower left', 'lower right',
-            'upper left', 'upper right' (default: 'lower left').
-        color : str or tuple, optional
-            Colour of the scale bar and label text (default: 'white').
+            Location of the scale bar, e.g. 'lower left', 'lower right' (default: 'lower left')
+        color : str, optional
+            Colour of the scale bar and label text (default: 'white')
         fontsize : int, optional
-            Font size for the label in points (default: 12).
-        linewidth : float or int, optional
-            Thickness of the scale bar in points (default: 3).
-        outlinewidth : float or int, optional
-            Width of the black outline stroke around the bar in points (default: 3).
-
+            Font size for the label in points (default: 12)
+        linewidth : float, optional
+            Thickness of the scale bar in points (default: 3)
+        outlinewidth : float, optional
+            Width of the black outline stroke in points (default: 3)
+    
     Returns:
-        None, but adds scale bar to the provided axis. Check figure.
+        None, but adds scale bar to the provided axis
     """
 
     scale_pixels = scale_length_nm / pixel_size_nm
@@ -508,39 +507,28 @@ def add_scalebar(ax, pixel_size_nm=0.15, scale_length_nm=5, location='lower left
     if 'left' in location.lower():
         x_offset = img_width * 0.03
     else:
-        x_offset = img_width * 0.80
+        x_offset = img_width * 0.97 - scale_pixels
 
     if 'lower' in location.lower():
         y_center = img_height * 0.95
     else:
         y_center = img_height * 0.05
 
-    # Convert linewidth in points to data units (pixels) using figure DPI.
-    # I used DPI because matplotlib's internal conversion is based on that, 1000 DPI typically used for high res figures.
-    try:
-        dpi = ax.figure.dpi
-    except Exception:
-        dpi = 100.0
+    # Convert linewidth in points to data units (pixels) using figure DPI
+    dpi = ax.figure.dpi
     bar_thickness_px = max(1.0, (linewidth) * (dpi / 72.0))  # 1 pt = 1/72 inch
 
-    # Draw rectangle (aka the scale bar) with black outline on all sides
-    try:
-        rect = Rectangle(
-            (x_offset, y_center - bar_thickness_px / 2.0),
-            width=scale_pixels,
-            height=bar_thickness_px,
-            facecolor=color,
-            edgecolor='black',
-            linewidth=max(1.0, outlinewidth * 0.6),
-            joinstyle='miter'
-        )
-        ax.add_patch(rect)
-    except Exception:
-        # two line method (black underlay + white overlay) if needed
-        ax.plot([x_offset, x_offset + scale_pixels], [y_center, y_center],
-                color='black', linewidth=linewidth + 4, solid_capstyle='projecting', zorder=2)
-        ax.plot([x_offset + 1, x_offset + scale_pixels - 1], [y_center, y_center],
-                color=color, linewidth=linewidth, solid_capstyle='butt', zorder=3)
+    # Draw scale bar with black outline on all sides
+    rect = Rectangle(
+        (x_offset, y_center - bar_thickness_px / 2.0),
+        width=scale_pixels,
+        height=bar_thickness_px,
+        facecolor=color,
+        edgecolor='black',
+        linewidth=max(1.0, outlinewidth * 0.6),
+        joinstyle='miter'
+    )
+    ax.add_patch(rect)
 
     # Label
     text_x = x_offset + scale_pixels / 2.0
@@ -548,11 +536,7 @@ def add_scalebar(ax, pixel_size_nm=0.15, scale_length_nm=5, location='lower left
     text = ax.text(text_x, text_y, f'{scale_length_nm:.0f} nm',
                    color=color, fontsize=fontsize, ha='center', va='bottom',
                    fontweight='bold')
-    try:
-        text.set_path_effects([
-            path_effects.Stroke(linewidth=2, foreground='black'),
-            path_effects.Normal()
-        ])
-    except Exception:
-        pass
-
+    text.set_path_effects([
+        path_effects.Stroke(linewidth=2, foreground='black'),
+        path_effects.Normal()
+    ])
