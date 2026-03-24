@@ -154,9 +154,8 @@ def clean_and_normalise_spectrum(energy, spectrum, prominence=0.05, width=(1,5),
     spec = np.array(spectrum, dtype=float)
     en = np.array(energy, dtype=float)
 
-    # detect positive spikes
+    # detect spikes
     pos_peaks, _ = find_peaks(spec, prominence=prominence, width=width)
-    # detect negative spikes
     if neg_prominence is None:
         neg_prominence = prominence
     neg_peaks, _ = find_peaks(-spec, prominence=neg_prominence, width=width)
@@ -170,7 +169,7 @@ def clean_and_normalise_spectrum(energy, spectrum, prominence=0.05, width=(1,5),
 
     # require at least two good points for interpolation
     if np.sum(mask) < 2:
-        # fallback: smooth small spikes with median filter-ish behaviour then normalise
+        # smooth small spikes with median filter-ish behaviour then normalise
         clean_spec = spec.copy()
     else:
         clean_spec = spec.copy()
@@ -631,9 +630,8 @@ def plot_eds_maps_overlay(eds_maps, out_dir, base_name, pixel_size_nm=0.15):
         try:
             plt.tight_layout()
         except Exception:
-            pass  # Ignore tight_layout warnings/errors
+            pass  # dont tight_layout if it warnings/errors
         fig_path = os.path.join(figures_dir, f"{base_name}_eds_maps_overlay.png")
-        # Save without tight cropping (retain original visual style)
         save_figure(fig, fig_path, tight=False)
         print(f"  Saved EDS overlay: {fig_path}")
         return fig_path
@@ -673,11 +671,11 @@ class DatasetLoader:
                 
             folder = os.path.dirname(summed_path)
             base_name = os.path.splitext(os.path.basename(summed_path))[0]
-            # Extract the base identifier (e.g., "18pA_InSitu_(3)" from "18pA_InSitu_(3)_HL_stack_sumall")
+            # Extract the base identifier (e.g. "18pA_InSitu_(3)" from "18pA_InSitu_(3)_HL_stack_sumall")
             base = base_name
             import re
             
-            # match and remove patterns like _HL_stack_sum*, _LL_stack_sum*, etc.
+            # match and remove patterns like _HL_stack_sum*, _LL_stack_sum* 
             pattern = r'_(HL|LL|ADF|EDS)_stack(_sum(all_)?\d+|_summed)?$'
             match = re.search(pattern, base, re.IGNORECASE)
             if match:
